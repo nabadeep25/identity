@@ -1,78 +1,62 @@
 import { Request, Response } from "express";
 import { getFormatedData } from "./helper";
 import {
-  getAllRelatedContactId,
-  getByEmailAndPhone,
-  getByEmailOrPhone,
-  insertContact,
-  updateContact,
+  createContact,
+  getAllRelatedContacts,
+  getContactsByEmailOrPhone,
 } from "../../services/contact";
+import Contact from "../../models/contact";
 import { linkPrecedence } from "../../config/const";
 
 const identifyContact = async (req: Request, res: Response) => {
   try {
     const { email, phoneNumber } = req.body;
-    let data: any;
-    let completeContact: any[] = [];
-    if (email && phoneNumber) {
-      completeContact = await getByEmailAndPhone(email, phoneNumber);
-    }
-    if (!email || !phoneNumber || !completeContact.length) {
-      let incompleteContact: any[] = [];
-      if (!completeContact?.length)
-        incompleteContact = await getByEmailOrPhone(email, phoneNumber);
 
-      if (!incompleteContact?.length) {
-        //  if there are no existing contacts against an incoming request
-        const [contact] = await insertContact(
+    if (!email && !phoneNumber) {
+      return res.status(400).json({ error: "email or phoneNumber required" });
+    }
+
+    const existingContacts = await getContactsByEmailOrPhone(
+      email,
+      phoneNumber
+    );
+
+    let primary: Contact;
+
+    if (existingContacts.length === 0) {
+      // No existing contact, create new primary
+      primary = await createContact(email, phoneNumber, linkPrecedence.PRIMARY);
+
+      return res.status(200).json({
+        contact: getFormatedData([primary]),
+      });
+    } else {
+      primary = existingContacts.filter(
+        (contact) => contact.linkPrecedence === linkPrecedence.PRIMARY
+      )[0];
+
+      const exactMatch = existingContacts.some(
+        (c) => c.email === email && c.phoneNumber === phoneNumber
+      );
+
+      if (!exactMatch) {
+        // Create secondary contact
+        await createContact(
           email,
           phoneNumber,
-          linkPrecedence.PRIMARY
+          linkPrecedence.SECONDARY,
+          primary.id
         );
-        let data = {
-          primaryContatctId: contact.id,
-          emails: contact.email,
-          phoneNumbers: contact.phoneNumber,
-          secondaryContactIds: [],
-        };
-        return res.status(201).json({contacts: data});
-      }
-
-      // if request contain new information
-      let isEmailPresent = false;
-      let isPhonePresent = false;
-      incompleteContact?.forEach((contact: any) => {
-        if (contact?.email == email) {
-          isEmailPresent = true;
-        } else if (contact?.phoneNumber == phoneNumber) {
-          isPhonePresent = true;
-        }
-      });
-
-      let idsToBeUpadated: number[] = [];
-      if (isEmailPresent && isPhonePresent) {
-        incompleteContact?.slice(1).forEach((contact: any) => {
-          if (contact?.linkPrecedence == linkPrecedence.PRIMARY) {
-            idsToBeUpadated.push(contact.id);
-          }
-        });
-
-        if (idsToBeUpadated.length) {
-          let r = await updateContact(
-            { linkPrecedence: linkPrecedence.SECONDARY },
-            idsToBeUpadated
-          );
-        }
-      } else if (email && phoneNumber) {
-        await insertContact(email, phoneNumber, linkPrecedence.SECONDARY);
+       
       }
     }
+    const allContacts = await getAllRelatedContacts(primary.id);
 
-    let contacts = await getAllRelatedContactId(email, phoneNumber);
+    const formatedData = getFormatedData(allContacts);
 
-    data = getFormatedData(contacts);
-
-    return res.status(200).json(data);
+    res.json({
+      contact: formatedData,
+    });
   } catch (error: any) {
     res.status(500).json({
       error: true,

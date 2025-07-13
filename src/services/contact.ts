@@ -1,76 +1,47 @@
 
-import db from "../db/connection";
+import Contact from "../models/contact";
+import { Op } from "sequelize";
 
-const getByEmailAndPhone = (email: string, phoneNumber: string) => {
-  return db("contacts")
-    .select()
-    .where({ email, phoneNumber })
-    .orderBy("createdAt");
-};
-
-const getByEmailOrPhone = (
+const getContactsByEmailOrPhone = (
   email: string | null,
   phoneNumber: string | null
 ) => {
-  return db("contacts").select().where({ email }).orWhere({ phoneNumber }).orderBy("createdAt");
+  return Contact.findAll({
+    where: {
+      [Op.or]: [{ email }, { phoneNumber }]
+    },
+    order: [["createdAt", "ASC"]]
+  });
 };
 
-const insertContact = (
+const createContact = (
   email: string,
   phoneNumber: string,
-  linkPrecedence: string
+  linkPrecedence: string,
+  linkedId?: number
 ) => {
-  return db("contacts")
-    .insert({
-      email,
-      phoneNumber,
-      linkPrecedence,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .returning("*");
+  return Contact.create({
+    email,
+    phoneNumber,
+    linkPrecedence,
+    linkedId
+  });
 };
 
-const updateContact = (data: any, ids: number[]) => {
-  return db("contacts").update(data).whereIn("id", ids).returning("*");
+const getAllRelatedContacts = (primaryId: number) => {
+  return Contact.findAll({
+    where: {
+      [Op.or]: [{ id: primaryId }, { linkedId: primaryId }]
+    },
+    order: [["createdAt", "ASC"]]
+  });
 };
 
-const getAllRelatedContactId = async(
-  email: string | null,
-  phoneNumber: string | null
-) => {
- let resut=await db
-  .withRecursive("results", (qb) => {
-    qb.select("id", "linkedId","phoneNumber","email")
-      .from("contacts")
-      .where({ phoneNumber })
-      .orWhere({ email })
-      .unionAll((qb) => {
-        qb.select("contacts.id", "contacts.linkedId","contacts.phoneNumber","contacts.email")
-          .from("contacts")
-          .join("results","results.linkedId", "contacts.id")
-   
-          .whereNot(db.ref("contacts.id"), "=", db.ref("results.id"));
-      });
-  })
-    .select("id","phoneNumber","email")
-    .from("results");
 
-   
-    return db("contacts").select().where(function() {
-        this.whereIn('id',resut.map(data=>data.id))
-        if(!email)
-        this.orWhereIn('email',resut.map(data=>data.email))
-        if(!phoneNumber)
-        this.orWhereIn('phoneNumber',resut.map(data=>data.phoneNumber))
-    }).orderBy("createdAt");
-};
 
 
 export {
-  getByEmailAndPhone,
-  getByEmailOrPhone,
-  insertContact,
-  updateContact,
-  getAllRelatedContactId
+  getContactsByEmailOrPhone,
+  createContact,
+  getAllRelatedContacts,
 };

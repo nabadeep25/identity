@@ -1,8 +1,4 @@
-import db from "../db/connection";
-
-(async () => {
-  try {
-    await db("contacts").insert([
+const data=[
       {
         email: "lorraine@hillvalley.edu",
         phoneNumber: "123456",
@@ -19,11 +15,4 @@ import db from "../db/connection";
         createdAt: "2023-04-20 05:30:00.11+00",
         updatedAt: "2023-04-20 05:30:00.11+00",
       },
-    ]).returning('*')
-    console.log("Data inserted to the table!");
-    process.exit(0);
-  } catch (err) {
-    console.log(err);
-    process.exit(1);
-  }
-})();
+    ]

@@ -1,3 +1,6 @@
+import { linkPrecedence } from "../../config/const";
+import Contact from "../../models/contact";
+
 const getUniqueValue = (arr: any[], key: string) => {
   let map = new Map();
   return arr.reduce((acc, value) => {
@@ -9,15 +12,17 @@ const getUniqueValue = (arr: any[], key: string) => {
   }, []);
 };
 
-const getFormatedData = (contacts: any[]) => {
-  let secondaryIds = contacts.slice(1)?.map((data: any) => data.id) ?? [];
+
+
+const getFormatedData = (contacts: Contact[]) => {
+  let secondaryIds = contacts.filter(c => c.linkPrecedence === linkPrecedence.SECONDARY)?.map((data: any) => data.id) ?? [];
+
   return {
-    contact: {
       primaryContatctId: contacts[0].id,
       emails: getUniqueValue(contacts, "email"),
       phoneNumbers: getUniqueValue(contacts, "phoneNumber"),
       secondaryContactIds: secondaryIds,
-    },
+    
   };
 };
-export { getUniqueValue, getFormatedData };
+export { getFormatedData };
