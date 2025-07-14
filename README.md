@@ -19,25 +19,10 @@ cp .env.example .env
 
 ```
  
-### for running server (Assuming postgres database is running locally)
-
- 
+### for running server and the database container using docker and docker-compose
 ```
-npm i
-npm run build
-npm run start
-
+docker-compose up -d
 ```
- ### for creating table
- ```
- npm run migrate
-
- ```
-### for inserting sample row
- ```
-  npm run seed
-
- ```
 
 ## information
 ### PORT=8000
