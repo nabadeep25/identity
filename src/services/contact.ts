@@ -28,6 +28,16 @@ const createContact = (
   });
 };
 
+const updateContactById = (
+  id: number,
+  payload: Partial<Contact>
+) => {
+  return Contact.update(payload, {
+    where: { id },
+    returning: true
+  })
+}
+
 const getAllRelatedContacts = (primaryId: number) => {
   return Contact.findAll({
     where: {
@@ -44,4 +54,5 @@ export {
   getContactsByEmailOrPhone,
   createContact,
   getAllRelatedContacts,
+  updateContactById
 };

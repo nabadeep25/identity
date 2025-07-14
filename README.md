@@ -1,7 +1,14 @@
 
 # Identity Reconciliation
 
+# Hosted endpoint
+```
+https://identity-1-1ahk.onrender.com/identify
+
+```
+
 ##  Dev setup
+
 ### clone the repository
 ```
 git clone https://github.com/nabadeep25/identity.git

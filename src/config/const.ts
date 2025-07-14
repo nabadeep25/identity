@@ -1,7 +1,7 @@
 
-const linkPrecedence={
-    PRIMARY:'primary',
-    SECONDARY:'secondary'
+enum linkPrecedence {
+    PRIMARY = 'primary',
+    SECONDARY = 'secondary'
 }
 
 export {
