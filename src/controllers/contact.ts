@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
-import { getFormatedData } from "./helper";
+import { getFormatedData } from "../utils/helper";
 import {
   createContact,
   getAllRelatedContacts,
   getContactsByEmailOrPhone,
   updateContactById,
-} from "../../services/contact";
-import Contact from "../../models/contact";
-import { linkPrecedence } from "../../config/const";
-import logger from "../../utils/logger";
+} from "../services/contact";
+import Contact from "../models/contact";
+import { linkPrecedence } from "../common/const";
+import logger from "../utils/logger";
 
 const identifyContact = async (req: Request, res: Response) => {
   try {
@@ -23,24 +23,23 @@ const identifyContact = async (req: Request, res: Response) => {
       phoneNumber
     );
 
-    let primary: Contact;
+    let firstContact: Contact;
 
-    logger.info("Existing contacts found:", JSON.stringify(existingContacts, null, 2));
+    logger.info("Number of existing contacts found:", existingContacts.length);
 
     if (existingContacts.length === 0) {
-      // No existing contact, create new primary
-      primary = await createContact(email, phoneNumber, linkPrecedence.PRIMARY);
+      //1. Requirement1:  No existing contact, create new primary
+      const newContact = await createContact(
+        email,
+        phoneNumber,
+        linkPrecedence.PRIMARY
+      );
 
       return res.status(200).json({
-        contact: getFormatedData([primary]),
+        contact: getFormatedData([newContact]),
       });
     } else {
-      primary = existingContacts.filter(
-        (contact) => contact.linkPrecedence === linkPrecedence.PRIMARY
-      )[0] ?? existingContacts[0];
-
-      logger.info("Primary contact found:", JSON.stringify(primary, null, 2));
-
+      firstContact = existingContacts[0];
       const exactMatch = existingContacts.some(
         (c) => c.email === email && c.phoneNumber === phoneNumber
       );
@@ -51,35 +50,43 @@ const identifyContact = async (req: Request, res: Response) => {
         const existContactByEmail = existingContacts.find(
           (c) => c.email === email
         );
-        logger.info("Existing contact by email:", existContactByEmail);
+        logger.info("Existing contactId by email:", existContactByEmail?.id);
         const existContactByPhone = existingContacts.find(
           (c) => c.phoneNumber === phoneNumber
         );
-        logger.info("Existing contact by phone:", existContactByPhone);
+        logger.info("Existing contactId by phone:", existContactByPhone?.id);
 
         if (existContactByEmail && existContactByPhone) {
           // if both contact are primary, make the recent one secondary
-          const mostRecentContact =
-            existContactByEmail.createdAt > existContactByPhone.createdAt
-              ? existContactByEmail
-              : existContactByPhone;
-          logger.info("Most recent contact:", JSON.stringify(mostRecentContact, null, 2));
-          await updateContactById(mostRecentContact.id, {
+          let oldestContact: Contact = existContactByEmail;
+          let recentContact: Contact = existContactByPhone;
+          if (existContactByEmail.createdAt > existContactByPhone.createdAt) {
+            recentContact = existContactByEmail;
+            oldestContact = existContactByPhone;
+          }
+          // Keep oldest record as primary
+          await updateContactById(recentContact.id, {
             linkPrecedence: linkPrecedence.SECONDARY,
+            linkedId: oldestContact.id,
           });
-        } else if(email && phoneNumber){
-          // Create secondary contact with new details
-          logger.info("Creating secondary contact with email:", email, "and phoneNumber:", phoneNumber);
+          logger.info(`Updated conactId ${recentContact.id} to secondary`);
+        } else if (email && phoneNumber) {
+          // Create secondary contact
+          logger.info("Creating secondary contact");
           await createContact(
             email,
             phoneNumber,
             linkPrecedence.SECONDARY,
-            primary.id
+            firstContact.id
           );
         }
       }
     }
-    const allContacts = await getAllRelatedContacts(primary.id);
+    const primaryContactId =
+      firstContact.linkPrecedence === linkPrecedence.PRIMARY
+        ? firstContact.id
+        : (firstContact.linkedId as number);
+    const allContacts = await getAllRelatedContacts(primaryContactId);
 
     const formatedData = getFormatedData(allContacts);
 
