@@ -1,7 +1,7 @@
 
 # Identity Reconciliation
 
-# Hosted endpoint (DB will get deleted after 12 aug 2025)
+## Hosted endpoint (DB will get deleted after 12 aug 2025)
 ```
 https://identity-1-1ahk.onrender.com/identify
 
