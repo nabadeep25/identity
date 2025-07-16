@@ -3,13 +3,18 @@ import Contact from "../models/contact";
 import { Op } from "sequelize";
 
 const getContactsByEmailOrPhone = (
-  email: string | null,
-  phoneNumber: string | null
+  email?: string,
+  phoneNumber?: string
 ) => {
+  const conditions: any[] = [];
+
+  if (email) conditions.push({ email });
+  if (phoneNumber) conditions.push({ phoneNumber });
+
+  const where = conditions.length > 0 ? { [Op.or]: conditions } : {};
+
   return Contact.findAll({
-    where: {
-      [Op.or]: [{ email }, { phoneNumber }]
-    },
+    where,
     order: [["createdAt", "ASC"]]
   });
 };

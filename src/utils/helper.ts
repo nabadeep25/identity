@@ -1,6 +1,13 @@
 import { linkPrecedence } from "../common/const";
 import Contact from "../models/contact";
 
+export function extractUniqueField<T>(array: T[]):T[] {
+  return Array.from(
+    new Set(
+      array.filter((val)=>val !==null && val!== undefined))
+    )
+}
+
 const getFormatedData = (contacts: Contact[]) => {
   // handle empty conatcts
   if (!contacts || contacts.length === 0) {
@@ -25,8 +32,8 @@ const getFormatedData = (contacts: Contact[]) => {
 
   return {
     primaryContatctId: primaryContactIds[0],
-    emails: Array.from(new Set(contacts.map((c) => c.email))),
-    phoneNumbers: Array.from(new Set(contacts.map((c) => c.phoneNumber))),
+    emails: extractUniqueField(contacts.map((c) => c.email)),
+    phoneNumbers: extractUniqueField(contacts.map((c) => c.phoneNumber)),
     secondaryContactIds: secondaryIds,
   };
 };
